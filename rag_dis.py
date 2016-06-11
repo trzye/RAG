@@ -3,7 +3,7 @@
 import argparse
 import random
 import math
-# import pp
+import pp
 
 # Wypisuje instrukcję do programu
 def usage():
@@ -104,9 +104,6 @@ def calculate_results_parallel(specimens, args, scale_min, scale_max):
     for job in jobs:
         res[i] = job()
         i += 1
-
-    # wypisanie informacji dla wyników danego pokolenia
-    job_server.print_stats()
 
     return res
 
