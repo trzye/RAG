@@ -111,12 +111,41 @@ def calculate_results_parallel(specimens, args, scale_min, scale_max):
     return res
 
 
-# Oblicza wyniki (funkcję celu) dla osobników. (Przetwarzanie równoległe)
+# Oblicza wyniki (funkcję celu) dla osobników. (bez przetwarzania równoległego)
 def calculate_results(specimens, args, scale_min, scale_max):
     res = [None] * arguments.o
     for actual_specimen in range(len(res)):
                 res[actual_specimen] = objective_function(specimens[actual_specimen], args.f, scale_min, scale_max)
     return res
+
+
+# obliczenie wyników przystosowania
+def calculate_adaptation_function(results, minimum):
+    for i in range(len(results)):
+        results[i] = results[i] - minimum - 0.5 * minimum
+    return results
+
+
+# przeskaluj wyniki
+def calculate_scale_function(args, results):
+    if args.s is "lin":
+        multiplying_factor = 1.5
+        average = sum(results) / float(len(results))
+        maximum = max(results)
+        minimum = min(results)
+        if minimum > (multiplying_factor * average - maximum)/(multiplying_factor - 1):
+            a = ((multiplying_factor - 1) * average) / (maximum - average)
+            b = average * ((maximum - multiplying_factor * average)/(maximum - average))
+        else:
+            a = average / (average - minimum)
+            b = -minimum * (average/(average - minimum))
+        for i in range(len(results)):
+            results[i] = a * results[i] + b
+            return results
+    if args.s is "pot": #TODO skalowanie potęgowe
+        return results
+    if args.s is "log": #TODO skalowanie logarytmiczne
+        return results
 
 
 # Uruchomienie programu
@@ -167,9 +196,14 @@ def main(args):
                 best_result = best_generation_result
                 best_specimen = best_generation_specimen
 
-            # TODO: na razie losowanie zamiast całej reszty algorytmu
-            for actual_specimen in range(len(specimens)):
-                specimens[actual_specimen] = rand_specimen(args.f)
+            # oblicz na funkcję przystosowania
+            results = calculate_adaptation_function(results, best_generation_result)
+
+            # oblicz na funkcję skalowania
+            if args.s is not None:
+                results = calculate_scale_function(args, results)
+
+
 
         # wypisanie informacji dla ostatecznych wyników
         if args.n is not None:
