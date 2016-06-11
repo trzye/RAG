@@ -3,6 +3,7 @@
 import argparse
 import random
 import math
+import time
 import pp
 
 # Wypisuje instrukcję do programu
@@ -72,6 +73,7 @@ def get_scale_max(f):
 
 # Oblicza funkcję celu
 def objective_function(f_args, f, scale_min, scale_max):
+    time.sleep(0.05)
     if f == "f1":
         a = scale(f_args[0], scale_min[0], scale_max[0])
         b = scale(f_args[1], scale_min[1], scale_max[1])
@@ -98,7 +100,7 @@ def calculate_results_parallel(specimens, args, scale_min, scale_max):
     for i in range(len(res)):
         jobs.append(
             job_server.submit(objective_function, (specimens[i], args.f, scale_min, scale_max),
-                              (scale,), ('math',)))
+                              (scale,), ('math','time',)))
 
     i = 0
     for job in jobs:
@@ -137,7 +139,7 @@ def main(args):
             print("Pokolenie: " + str(actual_generation))
 
             # obliczam funkcję celu
-            if args.t > 1:
+            if args.t > 1 and args.x is not None:
                 results = calculate_results_parallel(specimens, args, scale_min, scale_max)
             else:
                 results = calculate_results(specimens, args, scale_min, scale_max)
@@ -173,4 +175,7 @@ if __name__ == '__main__':
     if arguments.f is None:
         usage()
     else:
+        start_time = time.time()
         main(arguments)
+        print "Czas przetwarzania: ", time.time() - start_time
+
