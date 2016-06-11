@@ -6,9 +6,10 @@ import math
 import time
 import pp
 
+
 # Wypisuje instrukcję do programu
 def usage():
-    with open('usage.txt', encoding="utf8") as f:
+    with open('usage.txt') as f:
         read_data = f.read()
     f.close()
     print(read_data)
@@ -19,14 +20,14 @@ def usage():
 def parse_parameters():
     parser = argparse.ArgumentParser()
     # wymagane argumenty
-    parser.add_argument('-f', type=str, default="f2", choices=["f1", "f2"], help="funkcja: f1 albo f2")
-    parser.add_argument('-o', type=int, default=3, help="liczba osobników > 0")
-    parser.add_argument('-p', type=int, default=4, help="liczba pokoleń > 0")
+    parser.add_argument('-f', type=str, choices=["f1", "f2"], help="funkcja: f1 albo f2")
+    parser.add_argument('-o', type=int, default=20, help="liczba osobników > 0")
+    parser.add_argument('-p', type=int, default=10, help="liczba pokoleń > 0")
     parser.add_argument('-w', type=str, default="wlp", choices=["wlp", "wlr", "wd"], help="sposób wyboru: wlp, wlr, wd")
     parser.add_argument("-m", type=float, default=0.25, help="współczynnik mutacji <0,1>")
     parser.add_argument("-k", type=float, default=0.25, help="współczynnik krzyżowania <0,1>")
     parser.add_argument("-t", type=int, default=1, help="liczba wątków")
-    parser.add_argument("-x", type=str, default=None, help="server np: 192.169.0.1:1234")
+    parser.add_argument("-x", type=str, default=None, help="serwer np: 192.169.0.1:1234")
     # opcjonalne argumenty
     parser.add_argument('-s', type=str, choices=["lin", "pot", "log"], help="sposób skalowania: lin, pot, log")
     parser.add_argument('-n', type=str, help="nazwa pliku do zapisania informacji o przebiegu generacji")
@@ -100,7 +101,7 @@ def calculate_results_parallel(specimens, args, scale_min, scale_max):
     for i in range(len(res)):
         jobs.append(
             job_server.submit(objective_function, (specimens[i], args.f, scale_min, scale_max),
-                              (scale,), ('math','time',)))
+                              (scale,), ('math', 'time',)))
 
     i = 0
     for job in jobs:
@@ -120,8 +121,13 @@ def calculate_results(specimens, args, scale_min, scale_max):
 
 # Uruchomienie programu
 def main(args):
-    # TODO: lepsze wypisanie parametrów wywołania
-        print("Parametry wywołania: " + str(args))
+
+        start_time = time.time()
+
+        # inicjacja pliku do zapisu
+        if args.n is not None:
+            write_file = open(args.n, 'w')
+            write_file.write("Parametry wywołania: " + str(args))
 
         # przygotowanie danych
         specimens = [None] * args.o
@@ -136,7 +142,8 @@ def main(args):
 
         # właściwy algorytm genetyczny, pętla po pokoleniach
         for actual_generation in range(1, args.p + 1):
-            print("Pokolenie: " + str(actual_generation))
+            if args.n is not None:
+                write_file.write("\nPokolenie: " + str(actual_generation))
 
             # obliczam funkcję celu
             if args.t > 1 and args.x is not None:
@@ -148,8 +155,9 @@ def main(args):
             best_generation_result = min(results)
             best_generation_specimen = specimens[results.index(best_generation_result)]
 
-            print("\tNajlepszy osobnik w pokoleniu: {0}\n\tNajlepszy wynik w pokoleniu: {1}".format(
-                str(scale_specimen(best_generation_specimen, scale_min, scale_max)), best_generation_result))
+            if args.n is not None:
+                write_file.write("\n\tNajlepszy osobnik w pokoleniu: {0}\n\tNajlepszy wynik w pokoleniu: {1}\n".format(
+                    str(scale_specimen(best_generation_specimen, scale_min, scale_max)), best_generation_result))
 
             # dodaję do globalnie najlepszych, jeżeli są lepsze
             if best_result is None:
@@ -160,14 +168,20 @@ def main(args):
                 best_specimen = best_generation_specimen
 
             # TODO: na razie losowanie zamiast całej reszty algorytmu
-            # losowanie osobników
             for actual_specimen in range(len(specimens)):
                 specimens[actual_specimen] = rand_specimen(args.f)
 
         # wypisanie informacji dla ostatecznych wyników
-        print("Wyniki")
-        print("\tNajlepszy osobnik: {0}\n\tNajlepszy wynik: {1}".format(
-            str(scale_specimen(best_specimen, scale_min, scale_max)), best_result))
+        if args.n is not None:
+            write_file.write("Wyniki\n")
+            write_file.write("\tNajlepszy osobnik: {0}\n\tNajlepszy wynik: {1}\n".format(
+                str(scale_specimen(best_specimen, scale_min, scale_max)), best_result))
+            write_file.write("Czas przetwarzania: " + str(time.time() - start_time))
+        else:
+            print("Wyniki")
+            print("\tNajlepszy osobnik: {0}\n\tNajlepszy wynik: {1}".format(
+                str(scale_specimen(best_specimen, scale_min, scale_max)), best_result))
+            print "Czas przetwarzania: ", time.time() - start_time
 
 
 if __name__ == '__main__':
@@ -175,7 +189,5 @@ if __name__ == '__main__':
     if arguments.f is None:
         usage()
     else:
-        start_time = time.time()
         main(arguments)
-        print "Czas przetwarzania: ", time.time() - start_time
 

@@ -4,7 +4,8 @@ NAZWA
 WYWOŁANIE
      rag [-f funkcja][-o liczba_osobników][-p liczba_pokoleń]
          [-w sposób_wyboru][-m współczynnik_mutacji]
-         [-k współczynnik_krzyżowania]
+         [-k współczynnik_krzyżowania][-x serwer]
+         [-t liczba wątków]
 OPIS
      rag to rozproszony program wykorzystujący bibliotekę parall-
      el python(http://www.parallelpython.com) do wykonywania alg-
@@ -58,3 +59,11 @@ WYMAGANE ARGUMENTY
           nazwa pliku, do którego zostaną zapisane informacje o
           wyniku przetwarzania (jeżeli nie, to na stdout zostanie
           wypisane krótkie podsumowanie przetwarzania
+
+     -x serwer
+          adres serwera, na którym uruchomiony jest ppserver.py
+          np. 192.168.0.1 lub 192.168.0.1:60123
+
+     -t liczba wątków
+          liczba wątków, z którymi chcemy uruchomić program
+          domyślnie 1
