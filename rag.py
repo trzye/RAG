@@ -31,7 +31,7 @@ def parse_parameters():
 
 
 # Wylosuj osobnika
-def rand_specimen(f: str):
+def rand_specimen(f):
     if f == 'f1' or f == 'f2':
         a = random.uniform(0, 1)
         b = random.uniform(0, 1)
@@ -53,7 +53,7 @@ def scale_specimen(specimen, scale_minimum, scale_maximum):
 
 
 # Zwróć dolne granice argumentów funkcji
-def get_scale_min(f: str):
+def get_scale_min(f):
     if f == 'f1':
         return [-5, -15, 10]
     if f == 'f2':
@@ -61,7 +61,7 @@ def get_scale_min(f: str):
 
 
 # Zwróć górne granice argumentów funkcji
-def get_scale_max(f: str):
+def get_scale_max(f):
     if f == 'f1':
         return [10, 18, 7]
     if f == 'f2':
@@ -69,7 +69,7 @@ def get_scale_max(f: str):
 
 
 # Oblicza funkcję celu
-def objective_function(f_args, f: str, scale_minimum, scale_maximum):
+def objective_function(f_args, f, scale_minimum, scale_maximum):
     if f == "f1":
         a = scale(f_args[0], scale_minimum[0], scale_maximum[0])
         b = scale(f_args[1], scale_minimum[1], scale_maximum[1])

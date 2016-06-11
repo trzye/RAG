@@ -25,7 +25,7 @@ def parse_parameters():
     parser.add_argument('-w', type=str, default="wlp", choices=["wlp", "wlr", "wd"], help="sposób wyboru: wlp, wlr, wd")
     parser.add_argument("-m", type=float, default=0.25, help="współczynnik mutacji <0,1>")
     parser.add_argument("-k", type=float, default=0.25, help="współczynnik krzyżowania <0,1>")
-    parser.add_argument("-w", type=int, default=2, help="ilość wątków")
+    parser.add_argument("-t", type=int, default=2, help="ilość wątków")
     # opcjonalne argumenty
     parser.add_argument('-s', type=str, choices=["lin", "pot", "log"], help="sposób skalowania: lin, pot, log")
     parser.add_argument('-n', type=str, help="nazwa pliku do zapisania informacji o przebiegu generacji")
@@ -33,7 +33,7 @@ def parse_parameters():
 
 
 # Wylosuj osobnika
-def rand_specimen(f: str):
+def rand_specimen(f):
     if f == 'f1' or f == 'f2':
         a = random.uniform(0, 1)
         b = random.uniform(0, 1)
@@ -55,7 +55,7 @@ def scale_specimen(specimen, scale_minimum, scale_maximum):
 
 
 # Zwróć dolne granice argumentów funkcji
-def get_scale_min(f: str):
+def get_scale_min(f):
     if f == 'f1':
         return [-5, -15, 10]
     if f == 'f2':
@@ -63,7 +63,7 @@ def get_scale_min(f: str):
 
 
 # Zwróć górne granice argumentów funkcji
-def get_scale_max(f: str):
+def get_scale_max(f):
     if f == 'f1':
         return [10, 18, 7]
     if f == 'f2':
@@ -71,7 +71,7 @@ def get_scale_max(f: str):
 
 
 # Oblicza funkcję celu
-def objective_function(f_args, f: str, scale_minimum, scale_maximum):
+def objective_function(f_args, f, scale_minimum, scale_maximum):
     if f == "f1":
         a = scale(f_args[0], scale_minimum[0], scale_maximum[0])
         b = scale(f_args[1], scale_minimum[1], scale_maximum[1])
@@ -112,14 +112,20 @@ if __name__ == '__main__':
 
             # przetwarzanie równoległe
             ppservers = ()
-            job_server = pp.Server(args.w, ppservers=ppservers)
+            job_server = pp.Server(args.t, ppservers=ppservers)
 
-            # obliczam funkcję celu - równolegle
-            jobs = [(actual_specimen,
-                     job_server.submit(objective_function, (specimens[actual_specimen], args.f, scale_min, scale_max),
-                                       (), ())) for i in range(len(specimens))]
-            for actual_specimen, job in jobs:
-                results[actual_specimen] = job()
+            # obliczam funkcję celu - równoleglei
+	    jobs = []
+	    for actual_specimen in range(len(specimens)):
+                jobs.append(job_server.submit(objective_function, (specimens[actual_specimen], args.f, scale_min, scale_max), (scale,), ('math',)))
+
+            i = 0
+	    for job in jobs:
+		results[i] = job()
+                i=i+1
+            
+            #czekam na wykonanie zadania
+            # job_server.wait()
 
             # najlepsze wyniki generacji
             best_generation_result = min(results)
