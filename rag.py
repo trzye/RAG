@@ -23,7 +23,7 @@ def parse_parameters():
     parser.add_argument('-f', type=str, choices=["f1", "f2"], help="funkcja: f1 albo f2")
     parser.add_argument('-o', type=int, default=20, help="liczba osobników > 0")
     parser.add_argument('-p', type=int, default=10, help="liczba pokoleń > 0")
-    parser.add_argument('-w', type=str, default="wlp", choices=["wlp", "wlr", "wd"], help="sposób wyboru: wlp, wlr, wd")
+    parser.add_argument('-w', type=str, default="wd", choices=["wlp", "wlr", "wd"], help="sposób wyboru: wlp, wlr, wd")
     parser.add_argument("-m", type=float, default=0.25, help="współczynnik mutacji <0,1>")
     parser.add_argument("-k", type=float, default=0.25, help="współczynnik krzyżowania <0,1>")
     parser.add_argument("-t", type=int, default=1, help="liczba wątków")
@@ -120,9 +120,18 @@ def calculate_results(specimens, args, scale_min, scale_max):
 
 
 # obliczenie wyników przystosowania
-def calculate_adaptation_function(results, minimum):
+def calculate_adaptation_function(results):
+    minimum = min(results)
+    if minimum > 0:
+        bigger_than_zero = -1
+    else:
+        bigger_than_zero = 1
     for i in range(len(results)):
-        results[i] = results[i] - minimum - 0.5 * minimum
+        results[i] = (results[i] - minimum - 0.5 * minimum) * bigger_than_zero
+    minimum = min(results)
+    maximum = max(results)
+    for i in range(len(results)):
+        results[i] = maximum - results[i] + minimum
     return results
 
 
@@ -142,10 +151,48 @@ def calculate_scale_function(args, results):
         for i in range(len(results)):
             results[i] = a * results[i] + b
             return results
-    if args.s is "pot": #TODO skalowanie potęgowe
+    if args.s is "pot":  # TODO skalowanie potęgowe
         return results
-    if args.s is "log": #TODO skalowanie logarytmiczne
+    if args.s is "log":  # TODO skalowanie logarytmiczne
         return results
+
+
+# Wybór osobników do kolejnych pokoleń
+def choose_specimens(args, specimens, results):
+    # Czynności wstępne
+    adaptation_sum = sum(results)
+    choose_probability = [float] * len(specimens)
+    choose_copies = [float] * len(specimens)
+    choose_copies_total = [int] * len(specimens)
+    choose_copies_rest = [float] * len(specimens)
+
+    for i in range(len(specimens)):
+        choose_probability[i] = results[i] / adaptation_sum
+        choose_copies[i] = choose_probability[i] * len(specimens)
+        choose_copies_total[i] = int(choose_copies[i])
+        choose_copies_rest[i] = choose_copies[i] - float(choose_copies_total[i])
+
+    if args.w is "wd":
+        sum_of_copies = sum(choose_copies_total)
+        free_places = len(specimens) - sum_of_copies
+        new_specimens = []
+        # sortuję osobniki względem reszt z dzielenia
+        sorted_specimens = [x for (y, x) in sorted(zip(choose_copies_rest, specimens))]
+        for i in range(len(specimens)):
+            for j in range(choose_copies_total[i]):
+                new_specimens.append(specimens[i])
+        for j in range(free_places):
+            if len(new_specimens) < args.o:
+                new_specimens.append(sorted_specimens.pop())  # wyjmuję i dodaję ostatniego z największą resztą
+        while len(new_specimens) < args.o:
+            new_specimens.append(sorted_specimens.pop())
+        while len(new_specimens) > args.o:
+            new_specimens.pop()
+        return new_specimens
+    if args.w is "wlp":  # TODO: wybór losowy z powtórzeniami
+        return specimens
+    if args.w is "wlr":  # TODO: wybór losowy według reszt bez powtórzeń
+        return specimens
 
 
 # Uruchomienie programu
@@ -197,11 +244,14 @@ def main(args):
                 best_specimen = best_generation_specimen
 
             # oblicz na funkcję przystosowania
-            results = calculate_adaptation_function(results, best_generation_result)
+            results = calculate_adaptation_function(results)
 
             # oblicz na funkcję skalowania
             if args.s is not None:
                 results = calculate_scale_function(args, results)
+
+            # wybierz osobniki do następnej generacji
+            specimens = choose_specimens(args, specimens, results)
 
 
 
