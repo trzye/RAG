@@ -73,7 +73,7 @@ def get_scale_max(f):
 
 # Oblicza funkcję celu
 def objective_function(f_args, f, scale_min, scale_max):
-    time.sleep(0.05)
+    time.sleep(0.01)
     if f == "f1":
         a = scale(f_args[0], scale_min[0], scale_max[0])
         b = scale(f_args[1], scale_min[1], scale_max[1])
