@@ -21,11 +21,11 @@ def parse_parameters():
     parser = argparse.ArgumentParser()
     # wymagane argumenty
     parser.add_argument('-f', type=str, choices=["f1", "f2"], help="funkcja: f1 albo f2")
-    parser.add_argument('-o', type=int, default=20, help="liczba osobników > 0")
-    parser.add_argument('-p', type=int, default=10, help="liczba pokoleń > 0")
+    parser.add_argument('-o', type=int, default=50, help="liczba osobników > 0")
+    parser.add_argument('-p', type=int, default=20, help="liczba pokoleń > 0")
     parser.add_argument('-w', type=str, default="wd", choices=["wlp", "wlr", "wd"], help="sposób wyboru: wlp, wlr, wd")
-    parser.add_argument("-m", type=float, default=0.25, help="współczynnik mutacji <0,1>")
-    parser.add_argument("-k", type=float, default=0.25, help="współczynnik krzyżowania <0,1>")
+    parser.add_argument("-m", type=float, default=0.05, help="współczynnik mutacji <0,1>")
+    parser.add_argument("-k", type=float, default=0.50, help="współczynnik krzyżowania <0,1>")
     parser.add_argument("-t", type=int, default=1, help="liczba wątków")
     parser.add_argument("-x", type=str, default=None, help="serwer np: 192.169.0.1:1234")
     # opcjonalne argumenty
@@ -137,23 +137,23 @@ def calculate_adaptation_function(results):
 
 # przeskaluj wyniki
 def calculate_scale_function(args, results):
-    if args.s is "lin":
+    if args.s == "lin":
         multiplying_factor = 1.5
         average = sum(results) / float(len(results))
         maximum = max(results)
         minimum = min(results)
         if minimum > (multiplying_factor * average - maximum)/(multiplying_factor - 1):
-            a = ((multiplying_factor - 1) * average) / (maximum - average)
-            b = average * ((maximum - multiplying_factor * average)/(maximum - average))
+            a = ((multiplying_factor - 1) * average) / (maximum - average + 0.1)
+            b = average * ((maximum - multiplying_factor * average)/(maximum - average + 0.1))
         else:
-            a = average / (average - minimum)
-            b = -minimum * (average/(average - minimum))
+            a = average / ((average - minimum) + 0.1)
+            b = -minimum * (average/(average - minimum + 0.1))
         for i in range(len(results)):
             results[i] = a * results[i] + b
-            return results
-    if args.s is "pot":  # TODO skalowanie potęgowe
         return results
-    if args.s is "log":  # TODO skalowanie logarytmiczne
+    if args.s == "pot":  # TODO skalowanie potęgowe
+        return results
+    if args.s == "log":  # TODO skalowanie logarytmiczne
         return results
 
 
@@ -166,13 +166,16 @@ def choose_specimens(args, specimens, results):
     choose_copies_total = [int] * len(specimens)
     choose_copies_rest = [float] * len(specimens)
 
+    if adaptation_sum == 0:
+        adaptation_sum = 0.1
+
     for i in range(len(specimens)):
         choose_probability[i] = results[i] / adaptation_sum
         choose_copies[i] = choose_probability[i] * len(specimens)
         choose_copies_total[i] = int(choose_copies[i])
         choose_copies_rest[i] = choose_copies[i] - float(choose_copies_total[i])
 
-    if args.w is "wd":
+    if args.w == "wd":
         sum_of_copies = sum(choose_copies_total)
         free_places = len(specimens) - sum_of_copies
         new_specimens = []
@@ -189,10 +192,34 @@ def choose_specimens(args, specimens, results):
         while len(new_specimens) > args.o:
             new_specimens.pop()
         return new_specimens
-    if args.w is "wlp":  # TODO: wybór losowy z powtórzeniami
+    if args.w == "wlp":  # TODO: wybór losowy z powtórzeniami
         return specimens
-    if args.w is "wlr":  # TODO: wybór losowy według reszt bez powtórzeń
+    if args.w == "wlr":  # TODO: wybór losowy według reszt bez powtórzeń
         return specimens
+
+
+# mutacja
+def mutate_specimens(args, specimens):
+    for i in range(len(specimens)):
+        to_mutate = random.uniform(0, 1)
+        if to_mutate < args.m:
+            par_to_mutate = random.randint(0, len(specimens[i]) - 1)
+            mutation = random.uniform(0, 1)
+            specimens[i][par_to_mutate] = mutation
+    return specimens
+
+
+# krzyżowanie
+def cross_specimens(args, specimens):
+    to_cross = int(args.k * len(specimens))
+    for i in range(to_cross):
+        mother = random.randint(0, len(specimens) - 1)
+        father = random.randint(0, len(specimens) - 1)
+        par_to_exchange = random.randint(0, len(specimens[0]) - 1)
+        tmp = specimens[father][par_to_exchange]
+        specimens[father][par_to_exchange] = specimens[mother][par_to_exchange]
+        specimens[mother][par_to_exchange] = tmp
+    return specimens
 
 
 # Uruchomienie programu
@@ -253,7 +280,11 @@ def main(args):
             # wybierz osobniki do następnej generacji
             specimens = choose_specimens(args, specimens, results)
 
+            # mutuj
+            specimens = mutate_specimens(args, specimens)
 
+            # krzyżuj
+            specimens = cross_specimens(args, specimens)
 
         # wypisanie informacji dla ostatecznych wyników
         if args.n is not None:
