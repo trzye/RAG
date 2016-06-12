@@ -134,24 +134,31 @@ def calculate_adaptation_function(results):
 
 # przeskaluj wyniki
 def calculate_scale_function(args, results):
-    if args.s == "lin":
-        multiplying_factor = 1.5
-        average = sum(results) / float(len(results))
-        maximum = max(results)
-        minimum = min(results)
-        if minimum > (multiplying_factor * average - maximum)/(multiplying_factor - 1):
-            a = ((multiplying_factor - 1) * average) / (maximum - average)
-            b = average * ((maximum - multiplying_factor * average)/(maximum - average))
-        else:
-            a = average / (average - minimum)
-            b = -minimum * (average/(average - minimum))
-        for i in range(len(results)):
-            results[i] = a * results[i] + b
-        return results
-    if args.s == "pot":  # TODO skalowanie potęgowe
-        return results
-    if args.s == "log":  # TODO skalowanie logarytmiczne
-        return results
+    tmp_results = results
+    try:
+        if args.s == "lin":
+            multiplying_factor = 1.5
+            average = sum(results) / float(len(results))
+            maximum = max(results)
+            minimum = min(results)
+            if minimum > (multiplying_factor * average - maximum)/(multiplying_factor - 1):
+                a = ((multiplying_factor - 1) * average) / (maximum - average)
+                b = average * ((maximum - multiplying_factor * average)/(maximum - average))
+            else:
+                a = average / (average - minimum)
+                b = -minimum * (average/(average - minimum))
+            for i in range(len(results)):
+                results[i] = a * results[i] + b
+            return results
+        if args.s == "pot":  # TODO skalowanie potęgowe
+            return results
+        if args.s == "log":  # TODO skalowanie logarytmiczne
+            return results
+    # gdy populacja zostanie zdominowana przez te same osobniki istnieje szansa dzielenia przez zero
+    # w sytuacji gdy osobniki są takie same w populacji nie ma sensu funkcja skalowania i omijamy
+    # ten etap
+    except ZeroDivisionError:
+        return tmp_results
 
 
 # Wybór osobników do kolejnych pokoleń
