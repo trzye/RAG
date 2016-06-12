@@ -95,6 +95,7 @@ def calculate_results_parallel(specimens, args, scale_min, scale_max):
         ppservers = ()
     else:
         ppservers = (args.x,)
+
     job_server = pp.Server(args.t, ppservers=ppservers)
 
     jobs = []
@@ -128,10 +129,6 @@ def calculate_adaptation_function(results):
         bigger_than_zero = 1
     for i in range(len(results)):
         results[i] = (results[i] - minimum - 0.5 * minimum) * bigger_than_zero
-    minimum = min(results)
-    maximum = max(results)
-    for i in range(len(results)):
-        results[i] = maximum - results[i] + minimum
     return results
 
 
@@ -143,11 +140,11 @@ def calculate_scale_function(args, results):
         maximum = max(results)
         minimum = min(results)
         if minimum > (multiplying_factor * average - maximum)/(multiplying_factor - 1):
-            a = ((multiplying_factor - 1) * average) / (maximum - average + 0.1)
-            b = average * ((maximum - multiplying_factor * average)/(maximum - average + 0.1))
+            a = ((multiplying_factor - 1) * average) / (maximum - average)
+            b = average * ((maximum - multiplying_factor * average)/(maximum - average))
         else:
-            a = average / ((average - minimum) + 0.1)
-            b = -minimum * (average/(average - minimum + 0.1))
+            a = average / (average - minimum)
+            b = -minimum * (average/(average - minimum))
         for i in range(len(results)):
             results[i] = a * results[i] + b
         return results
