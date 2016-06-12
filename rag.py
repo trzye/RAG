@@ -211,7 +211,7 @@ def mutate_specimens(args, specimens):
 
 # krzyżowanie
 def cross_specimens(args, specimens):
-    to_cross = int(args.k * len(specimens))
+    to_cross = int(args.k * len(specimens)) / 2
     for i in range(to_cross):
         mother = random.randint(0, len(specimens) - 1)
         father = random.randint(0, len(specimens) - 1)
@@ -249,7 +249,7 @@ def main(args):
                 write_file.write("\nPokolenie: " + str(actual_generation))
 
             # obliczam funkcję celu
-            if args.t > 1 and args.x is not None:
+            if (args.t > 1) or (args.x is not None):
                 results = calculate_results_parallel(specimens, args, scale_min, scale_max)
             else:
                 results = calculate_results(specimens, args, scale_min, scale_max)
